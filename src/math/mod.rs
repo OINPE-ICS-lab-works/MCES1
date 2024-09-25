@@ -3,8 +3,8 @@ type Series = Vec<f64>;
 type Occurrences = Vec<Row>;
 
 pub struct Row {
-    x: f64,
-    occurrences: usize,
+    pub x: f64,
+    pub occurrences: usize,
 }
 
 impl Row {
@@ -106,7 +106,8 @@ pub mod sample_analysys {
 
         fn calculate_expected_value_variance_and_unbiased_variance(&self) -> (f64, f64, f64) {
             let (expected_value, variance) = self.calculate_expected_value_and_variance();
-            let unbiased_variance = variance * (self.sample_size as f64) / (self.sample_size - 1) as f64;
+            let unbiased_variance =
+                variance * (self.sample_size as f64) / (self.sample_size - 1) as f64;
             (expected_value, variance, unbiased_variance)
         }
     }
