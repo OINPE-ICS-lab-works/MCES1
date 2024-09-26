@@ -86,7 +86,7 @@ pub mod sample_analysys {
     use super::Series;
 
     impl Histogram {
-        pub fn calculate_expected_value(&self) -> f64 {
+        fn calculate_expected_value(&self) -> f64 {
             self.occurrences
                 .iter()
                 .fold(0.0, |acc, x| acc + x.x * x.occurrences as f64)
@@ -104,7 +104,7 @@ pub mod sample_analysys {
             (expected_value, variance)
         }
 
-        fn calculate_expected_value_variance_and_unbiased_variance(&self) -> (f64, f64, f64) {
+        pub fn calculate_expected_value_variance_and_unbiased_variance(&self) -> (f64, f64, f64) {
             let (expected_value, variance) = self.calculate_expected_value_and_variance();
             let unbiased_variance =
                 variance * (self.sample_size as f64) / (self.sample_size - 1) as f64;
