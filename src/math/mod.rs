@@ -79,6 +79,47 @@ impl Histogram {
             sample_size: series.len(),
         }
     }
+
+    pub unsafe fn from_sorted_series_with_given_groups(series: &Series, amount_of_groups: usize) -> Self {
+        let length_of_range = unsafe { series.last().unwrap_unchecked() - series.first().unwrap() };
+        // I believe that nobody pass empty vector as argument
+        let histogram_step = length_of_range / amount_of_groups as f64;
+        let mut occurrences = Vec::with_capacity(amount_of_groups);
+        let start_of_histogram = *series.first().unwrap_unchecked();
+        let mut range_start = start_of_histogram + histogram_step;
+        let mut occurrences_in_range: usize = 0;
+        for value in series.iter() {
+            if *value < range_start {
+                occurrences_in_range += 1;
+            } else {
+                occurrences.push(Row::new(
+                    range_start - histogram_step / 2.0,
+                    occurrences_in_range,
+                ));
+                range_start += histogram_step;
+                occurrences_in_range = 1;
+            }
+            // println!("{}",range_start);
+        }
+        // Since float is awful for comparing additional check required
+        if occurrences.len() < occurrences.capacity() {
+            occurrences.push(Row::new(
+                range_start - histogram_step / 2.0,
+                occurrences_in_range,
+            ));
+        } else {
+            // Add 1 occurrency to last element because of [xk...xn] on the last range
+            // Equality may fail sometimes
+            // Non-zero array required
+            occurrences.last_mut().unwrap_unchecked().occurrences += 1;
+        }
+
+        Histogram {
+            occurrences,
+            step: histogram_step,
+            sample_size: series.len(),
+        }
+    }
 }
 
 pub mod sample_analysys {
