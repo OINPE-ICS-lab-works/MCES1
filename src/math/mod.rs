@@ -1,6 +1,13 @@
 use std::fmt;
+use statrs::distribution::{ChiSquared, ContinuousCDF};
 type Series = Vec<f64>;
 type Occurrences = Vec<Row>;
+
+fn persean_criterion(a: f64, intervals: usize, unknown_parameters: usize) -> Result<f64, Box<dyn std::error::Error>> {
+    let freedom = intervals - unknown_parameters - 1;
+    let chi_squared = ChiSquared::new(freedom as f64)?;
+    Ok(chi_squared.inverse_cdf(1.0 - a))
+}
 
 pub struct Row {
     pub x: f64,
@@ -80,6 +87,7 @@ impl Histogram {
         }
     }
 
+    #[allow(dead_code)]
     pub unsafe fn from_sorted_series_with_given_groups(series: &Series, amount_of_groups: usize) -> Self {
         let length_of_range = unsafe { series.last().unwrap_unchecked() - series.first().unwrap() };
         // I believe that nobody pass empty vector as argument
@@ -123,6 +131,9 @@ impl Histogram {
 }
 
 pub mod sample_analysys {
+    use statrs::distribution::ContinuousCDF;
+
+    use super::persean_criterion;
     use super::Histogram;
     use super::Series;
 
@@ -151,12 +162,32 @@ pub mod sample_analysys {
                 variance * (self.sample_size as f64) / (self.sample_size - 1) as f64;
             (expected_value, variance, unbiased_variance)
         }
+
+        pub fn return_persean_test(&self, distribution: impl ContinuousCDF<f64, f64>, a:f64 ,unknown_parameters: usize) -> (f64,f64) {
+            let critical_value = self
+                .occurrences
+                .iter()
+                .fold(0.0, |acc, x| {
+                    let theoretical_probability = distribution.cdf(x.x);
+                    let frequency = x.occurrences as f64 / self.sample_size as f64;
+                    acc + (frequency - theoretical_probability).powi(2)/theoretical_probability
+                });
+                println!("{},{},{}",a, self.occurrences.len(), unknown_parameters);
+            (critical_value, persean_criterion(a, self.occurrences.len(), unknown_parameters).unwrap())
+        }
+
+        pub fn use_persean_test(values: (f64, f64)) -> bool {
+            values.0 < values.1
+        }
+
     }
 
+    #[allow(dead_code)]
     fn calculate_expected_value(series: &Series) -> f64 {
         series.iter().sum::<f64>() / (series.len() as f64)
     }
 
+    #[allow(dead_code)]
     fn calculate_expected_value_and_variance(series: &Series) -> (f64, f64) {
         let expected_value = calculate_expected_value(series);
         let variance = series.iter().map(|x| x * x).sum::<f64>() / (series.len() as f64)
@@ -164,6 +195,7 @@ pub mod sample_analysys {
         (expected_value, variance)
     }
 
+    #[allow(dead_code)]
     fn calculate_expected_value_variance_and_unbiased_variance(series: &Series) -> (f64, f64, f64) {
         let (expected_value, variance) = calculate_expected_value_and_variance(series);
         let unbiased_variance = variance * (series.len() as f64) / (series.len() - 1) as f64;
